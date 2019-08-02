@@ -17,7 +17,7 @@ from torchvision import transforms, datasets, models
 #from unet_center_data_loader import dataloaders
 
 
-def train_model(model, optimizer, lr_scheduler, data_loader,device, max_epochs=1): #loaders
+def train_model(model, optimizer, lr_scheduler, data_loader,device, max_epochs=100): #loaders
     since = time.time()
 
     best_model_wts = copy.deepcopy(model.state_dict())
@@ -44,7 +44,7 @@ def train_model(model, optimizer, lr_scheduler, data_loader,device, max_epochs=1
             # loader = loaders[phase]
             pbar = tqdm(data_loader, total=len(data_loader), desc="Epoch {} {}".format(epoch, phase), ncols=0)
             #for iter_id, batch in enumerate(pbar): #data_loader
-            for ind, (img_id, batch) in enumerate(pbar): #data_loader
+            for ind, (img_id, batch) in enumerate(data_loader): #data_loader
 
 
                 for k in batch:

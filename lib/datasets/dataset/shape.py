@@ -17,57 +17,37 @@ import os
 import torch.utils.data as data
 
 
+
 class SHAPES(data.Dataset):
-    #num_classes = 3  ## BORJI
-    num_classes = 5  ## BORJI
+    num_classes = 3
     default_resolution = [128, 128]
     mean = np.array([0.40789654, 0.44719302, 0.47026115],
-                    dtype=np.float32).reshape(1, 1, 3)
-    std = np.array([0.28863828, 0.27408164, 0.27809835],
                    dtype=np.float32).reshape(1, 1, 3)
+    std  = np.array([0.28863828, 0.27408164, 0.27809835],
+                   dtype=np.float32).reshape(1, 1, 3)
+
+    
     def __init__(self, opt, split):
         super(SHAPES, self).__init__()
-        _folder_name = {'train': opt.shape_param + '_' + opt.shape_param_value,
-                        'test': opt.shape_param + '_' + opt.shape_param_value,
-                        'val': opt.shape_param + '_' + opt.shape_param_value,
-                        }
+#         _folder_name = {'train': opt.shape_param + '_' + opt.shape_param_value,
+#                         'test': opt.shape_param + '_' + opt.shape_param_value,
+#                         'val': opt.shape_param + '_' + opt.shape_param_value,
+#                         }
 
-        # self.data_dir = os.path.join(opt.data_dir, 'shapes')
-        # Mehdi
-        #self.data_dir = os.path.join(opt.data_dir, 'shapes', 'shape_' + opt.shape_param)
+        
+#         num_classes = self.num_classes  ## BORJI
+        self.class_names = ['__background__', "square", "circle", "triangle", "hexagon", "eclipse"]
+        self.default_resolution = [128, 128]
 
-        self.data_dir =os.path.join(opt.data_dir, 'shape_multicombined') #shapes
-        #self.data_dir =os.path.join(opt.data_dir, 'shape_hollow') #shapes
+        # ONLY CHANGE 
+        self.data_dir =os.path.join(opt.data_dir, 'shapes/shape_loc/') 
+        self.img_dir = os.path.join(self.data_dir, 'loc_left_train2019') 
+        self.annot_path = os.path.join(self.data_dir, 'annotations', 'instances_shape_loc_left_train2019.json')
 
-        # self.img_dir = os.path.join(self.data_dir, '{}2018'.format(split))
+        self.max_objs = self.num_classes
+        self.class_name = self.class_names[:self.num_classes+1]
+        self._valid_ids = np.arange(1, self.num_classes+1, dtype=np.int32)
 
-        # import ipdb; ipdb.set_trace()
-
-        #Mehdi
-        #self.img_dir = os.path.join(self.data_dir, '{}2019'.format(_folder_name[split]))
-        #self.img_dir = os.path.join(self.data_dir,'/loc_left_train2019')
-        self.img_dir = os.path.join(opt.data_dir,'shape_multicombined/multicombined_800_train2019')
-
-        # _ann_name = {'train': 'train2018', 'val': 'test2018', 'test': 'test2018'}
-
-        # _ann_name = {'train': opt.train_folder, 'val': opt.val_folder, 'test': opt.test_folder}
-
-        self.annot_path = os.path.join(self.data_dir, 'annotations', 'instances_shape_multicombined_800_train2019.json')
-
-
-#            'instances_shape_multicombined_800_{}2019.json').format(_folder_name[split])
-
-        #self.max_objs = 3
-
-        #self.class_name = ['__background__', "square", "circle", "triangle"]
-
-        #self._valid_ids = np.arange(1, 4, dtype=np.int32)
-
-        self.max_objs = 5
-
-        self.class_name = ['__background__', "square", "circle", "triangle", "hexagon", "eclipse"]
-
-        self._valid_ids = np.arange(1, 6, dtype=np.int32)
 
         self.cat_ids = {v: i for i, v in enumerate(self._valid_ids)}
 
@@ -86,8 +66,6 @@ class SHAPES(data.Dataset):
             [-0.56089297, 0.71832671, 0.41158938]
 
         ], dtype=np.float32)
-
-        # import ipdb; ipdb.set_trace()
 
 
         self.split = split

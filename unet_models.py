@@ -16,7 +16,7 @@ class InstanceUNet(nn.Module):
         self.class_segmentation = nn.Conv2d(in_features, n_class, 1)
         self.instance_embedding = nn.Sequential(
             nn.Conv2d(in_features, emb_features, 1),
-            nn.Sigmoid()
+            torch.Sigmoid()
         )
 
         self.margin = 1.0
@@ -180,14 +180,33 @@ class ObjectDetectUNet(nn.Module):
             
             
         
+class FocalLoss(nn.Module):
+    def __init__(self, alpha=1, gamma=0, logits=False, reduce=True):
+        super(FocalLoss, self).__init__()
+        self.alpha = alpha
+        self.gamma = gamma
+        self.logits = logits
+        self.reduce = reduce
 
+    def forward(self, inputs, targets):
+        if self.logits:
+            BCE_loss = F.binary_cross_entropy_with_logits(inputs, targets, reduce=False)
+        else:
+            BCE_loss = F.binary_cross_entropy(inputs, targets, reduce=False)
+        pt = torch.exp(-BCE_loss)
+        F_loss = self.alpha * (1-pt)**self.gamma * BCE_loss
+
+        if self.reduce:
+            return torch.mean(F_loss)
+        else:
+            return F_loss
 
     
     
 
     
 class WidthHeightUNet(nn.Module):
-    def __init__(self, n_class):
+    def __init__(self, n_class, gamma=0):
         super().__init__()
 
         self.base_model = ResNetUNet(n_class=None)
@@ -195,6 +214,7 @@ class WidthHeightUNet(nn.Module):
         in_features = 256        
         self.class_segmentation = nn.Conv2d(in_features, 4*n_class, 1)
         self.n_class = n_class
+        self.gamma = gamma
         
 
     def forward(self, input, gt_class_masks=None, gt_centers=None, gt_widths=None, gt_heights=None):
@@ -216,29 +236,34 @@ class WidthHeightUNet(nn.Module):
         outputs['width_masks'] = width_masks
         outputs['height_masks'] = height_masks
 
-        
+            # focal loss                  
+        #eps = 1e-7
+#         gamma = 2
+            
         if gt_class_masks is not None:
             
             gt_class_masks = gt_class_masks.type(torch.cuda.FloatTensor)  
             gt_centers = gt_centers.type(torch.cuda.FloatTensor)  
             gt_widths = gt_widths.type(torch.cuda.FloatTensor)  
             gt_heights = gt_heights.type(torch.cuda.FloatTensor)  
-            
-            
-            
-            
-            bce_mask = F.binary_cross_entropy_with_logits(class_masks, gt_class_masks)
-            losses['bce_mask'] = bce_mask
 
+            f_loss_mask = FocalLoss(1, self.gamma, True).forward(class_masks, gt_class_masks)
+            losses['focal_mask'] = f_loss_mask
+            
+            #bce_mask = F.binary_cross_entropy_with_logits(class_masks, gt_class_masks)
+            #losses['bce_mask'] = bce_mask
+            #clsmaskf = F.softmax(class_mask)
             class_masks = F.sigmoid(class_masks)
             dice = dice_loss(class_masks, gt_class_masks)
             losses['dice'] = dice
             
 
-
-            bce_center = F.binary_cross_entropy_with_logits(center_masks, gt_centers)
-            losses['bce_center'] = bce_center
+            f_loss_center = FocalLoss(1, self.gamma, True).forward(center_masks, gt_centers)
+            losses['focal_center'] = f_loss_center
             
+            #bce_center = F.binary_cross_entropy_with_logits(center_masks, gt_centers)
+            #losses['bce_center'] = bce_center
+            #centmaskf = F.softmax(center_masks)
             center_masks = F.sigmoid(center_masks)
             dice_center = dice_loss(center_masks, gt_centers)
             losses['dice_center'] = dice_center
@@ -246,8 +271,8 @@ class WidthHeightUNet(nn.Module):
 
             
 
+            criterion = torch.nn.MSELoss(reduction='elementwise_mean') #'mean' elementwise_mean reduction='mean'
             width_masks = (gt_centers > 0).type(torch.cuda.FloatTensor) * width_masks
-            criterion = torch.nn.MSELoss(reduction='elementwise_mean') #'mean'
             l2_width = criterion(width_masks, gt_widths)
             losses['l2_width'] = l2_width
 
@@ -256,8 +281,39 @@ class WidthHeightUNet(nn.Module):
             losses['l2_height'] = l2_height
             
             
-            loss = bce_mask + dice +bce_center +  l2_width + l2_height + dice_center
-#             loss = bce_center 
+
+            #import pdb; pdb.set_trace()
+            #logit_mask = F.sigmoid(class_mask)
+            #logit_mask = F.softmax(logit_masks, dim=1)
+            #logit_mask = class_masks.clamp(eps, 1. - eps)           
+            #ce_loss = -1 * gt_class_masks * torch.log(logit_mask)          
+            #f_loss_mask = ce_loss * (1 - logit_mask) ** gamma
+            #f_loss_mask = f_loss_mask.sum()
+            #mport pdb; pdb.set_trace()
+            
+            #clsmaskf = clsmaskf.clamp(eps, 1-eps)
+            #f_loss_mask = -(((1-clsmaskf)**gamma *  gt_class_masks * clsmaskf.log() ) + ( (clsmaskf ** gamma) * (1-gt_class_masks) * (1-clsmaskf).log())).mean()
+            #f_loss_mask = FocalLoss(1, gamma, False, False).forward(class_masks, gt_class_masks)
+
+            
+            # focal loss  center
+            #logit_center = F.sigmoid(center_masks)
+            #logit_center = F.softmax(logit_center, dim=1)
+            #logit_center = center_masks.clamp(eps, 1. - eps)
+            #ce_loss_center = -1 * gt_centers * torch.log(logit_center) 
+            #f_loss_center = ce_loss_center * (1 - logit_center) ** gamma
+            #f_loss_center = f_loss_center.sum()
+            
+            
+            #centmaskf = centmaskf.clamp(eps, 1-eps)
+            #f_loss_center = -(( (1-centmaskf)**gamma *  gt_centers * centmaskf.log() ) +  ( (centmaskf ** gamma) * (1-gt_centers) * (1-centmaskf).log() )).mean()
+            
+            
+            
+            #loss = bce_mask + dice + bce_center + dice_center + l2_width + l2_height# + f_loss_mask
+            loss = dice + f_loss_mask + dice_center + f_loss_center + l2_width + l2_height
+        
+#             loss = bce_center
             
             losses['loss'] = loss
 

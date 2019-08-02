@@ -43,13 +43,13 @@ def main(opt):
 
 
   print('Setting up data...')
-  val_loader = torch.utils.data.DataLoader(
-      Dataset(opt, 'val'), 
-      batch_size=1, 
-      shuffle=False,
-      num_workers=1,
-      pin_memory=True
-  )
+  #val_loader = torch.utils.data.DataLoader(
+  #    Dataset(opt, 'val'),
+  #    batch_size=1,
+  #    shuffle=False,
+  #    num_workers=1,
+  #    pin_memory=True
+  #)
 
   #if True: #opt.test
   #  _, preds = trainer.val(0, val_loader)
@@ -57,19 +57,19 @@ def main(opt):
   #  return
 
   train_loader = torch.utils.data.DataLoader(
-      Dataset(opt, 'train'), 
-      batch_size=opt.batch_size, 
+      Dataset(opt, 'train'),
+      batch_size=opt.batch_size,
       shuffle=True,
       num_workers=opt.num_workers,
-      pin_memory=True,
+      pin_memory=False,
       drop_last=True
   )
   #Mehdi
   ###############
 
   import models
-  batch=next(iter(val_loader))
-  print (len(batch))
+  #batch=next(iter(val_loader))
+  #print (len(batch))
 
   device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
   num_class = Dataset.num_classes #6
@@ -87,14 +87,14 @@ def main(opt):
                                                             verbose=True)
 
   model = train_model(modelunet, optimizer, lr_scheduler, train_loader, device)
-  model.eval()  # Set model to evaluate mode
+  #model.eval()  # Set model to evaluate mode
 
 
   # test_dataset = SimDataset(1, n_class, transform = trans)
   # test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False, num_workers=0)
 
-  inputs, labels_mask, labels_center, labels_width, labels_height = next(iter(val_loader))
-  inputs = inputs.to(device)
+  #inputs, labels_mask, labels_center, labels_width, labels_height = next(iter(val_loader))
+  #inputs = inputs.to(device)
 
   #torch.save(model, './models/model_last.pth')
   #for iter_id, batch in enumerate(data_loader):
@@ -119,7 +119,7 @@ def main(opt):
 #  best = 1e10
 #  for epoch in range(start_epoch + 1, opt.num_epochs + 1):
 #    mark = epoch if opt.save_all else 'last'
-#    log_dict_train, _ = trainer.train(epoch, train_loader)
+#    log_dict_train, _ = trainer.train(epoch, train_loader) #train_loader
 #    logger.write('epoch: {} |'.format(epoch))
 #    for k, v in log_dict_train.items():
 #      logger.scalar_summary('train_{}'.format(k), v, epoch)

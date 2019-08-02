@@ -45,8 +45,10 @@ class CTDetDataset(data.Dataset):
       input_w = (width | self.opt.pad) + 1
       s = np.array([input_w, input_h], dtype=np.float32)
     else:
+
       s = max(img.shape[0], img.shape[1]) * 1.0
-      input_h, input_w = height, width #self.opt.input_h, self.opt.input_w
+      input_h, input_w = self.opt.input_h, self.opt.input_w #height, width
+
 
 
 
@@ -100,7 +102,7 @@ class CTDetDataset(data.Dataset):
     ######################################
 
     flipped = False
-    if self.split == 'train':
+    if self.split == 'train': #train
       if not self.opt.not_rand_crop:
         s = s * np.random.choice(np.arange(0.6, 1.4, 0.1))
         w_border = self._get_border(128, img.shape[1])
@@ -113,12 +115,12 @@ class CTDetDataset(data.Dataset):
         c[0] += s * np.clip(np.random.randn()*cf, -2*cf, 2*cf) # cmnt this to run in jupyter lab
         c[1] += s * np.clip(np.random.randn()*cf, -2*cf, 2*cf) # cmnt this to run in jupyter lab
         s = s * np.clip(np.random.randn()*sf + 1, 1 - sf, 1 + sf)
-      
+
       if np.random.random() < self.opt.flip:
         flipped = True
         img = img[:, ::-1, :]
         c[0] =  width - c[0] - 1
-        
+
     #import pdb;
     #pdb.set_trace()
     trans_input = get_affine_transform(
@@ -126,23 +128,13 @@ class CTDetDataset(data.Dataset):
     inp = cv2.warpAffine(img, trans_input, 
                          (input_w, input_h),
                          flags=cv2.INTER_LINEAR)
-    f, plots = plt.subplots(1,sharex='all', sharey='all', figsize=(4 * 10, 4 * 10))
-    #img = img.transpose (2,0,1)
-    #plt[].imshow (img[0])
-    #plt.show ()
-
-    #plots[0,0].imshow(img)
-    #plots[0].imshow (inp)
-    #plt.show (inp[0])
-    #plt.show ()
-    cv2.imshow('org_img',img)
-    cv2.waitKey(200)
-    cv2.imshow ('inp',inp)
-    cv2.waitKey(200)
-    inp = (inp.astype(np.float32) / 255.)
+    #inp = (inp.astype(np.float32) / 255.)
+    inp = inp.astype(np.float32)
     if self.split == 'train' and not self.opt.no_color_aug:
       color_aug(self._data_rng, inp, self._eig_val, self._eig_vec)
-    inp = (inp - self.mean) / self.std
+    #print (self.mean ,'mean')
+    #print (self.std, 'std')
+    #inp = (inp - self.mean) / self.std
     inp = inp.transpose(2, 0, 1)
 
     output_h = input_h // self.opt.down_ratio
@@ -163,9 +155,9 @@ class CTDetDataset(data.Dataset):
     # mehdi
     #curImg = self.coco.imgs[img_id]
     #imageSize = (curImg['height'], curImg['width'])
-    segMapsize = (input_h,input_w,num_classes) #curImg['height'], curImg['width']
-    segMapTotal = np.zeros(segMapsize, dtype = bool)
-    segMapaffine = np.zeros(segMapsize, dtype = np.uint8)
+    segMapsize = (num_classes,input_h, input_w) #curImg['height'], curImg['width'] #height, width input_h,input_w
+    segMapTotal = np.zeros(segMapsize, dtype = np.uint8)
+    #segMapaffine = np.zeros(segMapsize, dtype = np.uint8)
     ctMapsize = (num_classes,input_h, input_w)
     ctMapTotal = np.zeros (ctMapsize, dtype = bool)
     widthMapTotal = np.zeros(ctMapsize, dtype = np.uint8)
@@ -199,11 +191,18 @@ class CTDetDataset(data.Dataset):
         labelMask = self.coco.annToMask(ann) == 1
         if flipped:
           labelMask = labelMask[:, ::-1]
-        segMapTotal[:, :, cls_id] = segMapTotal[:, :, cls_id] | labelMask
-        segMapaffine = segMapTotal.astype(np.float32)
-        segMapaffine = cv2.warpAffine(segMapaffine, trans_input,
+        labelMask = labelMask.astype(np.uint8)
+        labelMask = cv2.warpAffine(labelMask, trans_input,
                              (input_w, input_h),
                              flags=cv2.INTER_LINEAR)
+
+
+        #segMapTotal[cls_id,:,:] = segMapTotal[cls_id,:,:] | labelMask
+        segMapTotal[cls_id,:,:] = np.logical_or (segMapTotal[cls_id,:,:], labelMask)
+        #segMapaffine = segMapTotal.astype(np.float32)
+        #segMapaffine = cv2.warpAffine(segMapaffine, trans_input,
+        #                     (input_w, input_h),
+        #                     flags=cv2.INTER_LINEAR)
 
 
 
@@ -220,6 +219,9 @@ class CTDetDataset(data.Dataset):
             widthMapTotal[cls_id,  ct_int[1] + j, ct_int[0] + i] = w
             heightMapTotal[cls_id ,  ct_int[1] + j, ct_int[0] + i] = h
         #segMapTotal[cls_id,:,:] = segMapTotal[cls_id,:,:] | labelMask
+      #else:
+
+
 
         #plt.imshow(ctMapTotal[0])
         #plt.show()
@@ -239,8 +241,13 @@ class CTDetDataset(data.Dataset):
      #                  ct[0] + w / 2, ct[1] + h / 2, 1, cls_id])
     #org_img = org_img.transpose(2, 0, 1)
     #org_img.astype(np.float32)
-    segMapaffine = segMapaffine.transpose(2,0,1)
-    ret = {'input':inp , 'gt_segmap':segMapaffine.astype(np.uint8), 'gt_ctmap': ctMapTotal.astype(np.uint8), 'gt_widmap':widthMapTotal.astype(np.uint8), 'gt_heimap':heightMapTotal.astype(np.uint8)}
+    #'org_image':org_img,
+
+    #if (segMapaffine.shape[0] !=input_h):
+    #  segMapaffine = segMapTotal.astype(np.float32)
+    #  segMapaffine = cv2.warpAffine(segMapaffine, trans_input,(input_w, input_h),flags=cv2.INTER_LINEAR)
+    #segMapaffine = segMapaffine.transpose(2, 0, 1)
+    ret = {'input':inp , 'gt_segmap':segMapTotal, 'gt_ctmap': ctMapTotal.astype(np.uint8), 'gt_widmap':widthMapTotal.astype(np.uint8), 'gt_heimap':heightMapTotal.astype(np.uint8)}
 
 
     #org_img = org_img.astype(np.float32)/255
