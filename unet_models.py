@@ -247,22 +247,22 @@ class WidthHeightUNet(nn.Module):
             gt_widths = gt_widths.type(torch.cuda.FloatTensor)  
             gt_heights = gt_heights.type(torch.cuda.FloatTensor)  
 
-            f_loss_mask = FocalLoss(1, self.gamma, True).forward(class_masks, gt_class_masks)
-            losses['focal_mask'] = f_loss_mask
+            #f_loss_mask = FocalLoss(1, self.gamma, True).forward(class_masks, gt_class_masks)
+            #losses['focal_mask'] = f_loss_mask
             
-            #bce_mask = F.binary_cross_entropy_with_logits(class_masks, gt_class_masks)
-            #losses['bce_mask'] = bce_mask
+            bce_mask = F.binary_cross_entropy_with_logits(class_masks, gt_class_masks, pos_weight = torch.Tensor([.8]).cuda())
+            losses['bce_mask'] = bce_mask
             #clsmaskf = F.softmax(class_mask)
             class_masks = F.sigmoid(class_masks)
             dice = dice_loss(class_masks, gt_class_masks)
             losses['dice'] = dice
             
 
-            f_loss_center = FocalLoss(1, self.gamma, True).forward(center_masks, gt_centers)
-            losses['focal_center'] = f_loss_center
+            #f_loss_center = FocalLoss(1, self.gamma, True).forward(center_masks, gt_centers)
+            #losses['focal_center'] = f_loss_center
             
-            #bce_center = F.binary_cross_entropy_with_logits(center_masks, gt_centers)
-            #losses['bce_center'] = bce_center
+            bce_center = F.binary_cross_entropy_with_logits(center_masks, gt_centers, pos_weight = torch.Tensor([.8]).cuda())
+            losses['bce_center'] = bce_center
             #centmaskf = F.softmax(center_masks)
             center_masks = F.sigmoid(center_masks)
             dice_center = dice_loss(center_masks, gt_centers)
@@ -310,8 +310,8 @@ class WidthHeightUNet(nn.Module):
             
             
             
-            #loss = bce_mask + dice + bce_center + dice_center + l2_width + l2_height# + f_loss_mask
-            loss = dice + f_loss_mask + dice_center + f_loss_center + l2_width + l2_height
+            loss = bce_center + dice_center + l2_width + l2_height + bce_mask + dice #+ 
+            #loss = dice + f_loss_mask + dice_center + f_loss_center + l2_width + l2_height
         
 #             loss = bce_center
             

@@ -74,7 +74,7 @@ class BaseTrainer(object):
         self.optimizer.step()
       batch_time.update(time.time() - end)
       end = time.time()
-
+      #print ('I am here')
       Bar.suffix = '{phase}: [{0}][{1}/{2}]|Tot: {total:} |ETA: {eta:} '.format(
         epoch, iter_id, num_iters, phase=phase,
         total=bar.elapsed_td, eta=bar.eta_td)
@@ -85,7 +85,7 @@ class BaseTrainer(object):
       if not opt.hide_data_time:
         Bar.suffix = Bar.suffix + '|Data {dt.val:.3f}s({dt.avg:.3f}s) ' \
           '|Net {bt.avg:.3f}s'.format(dt=data_time, bt=batch_time)
-      if opt.print_iter > 0:
+      if opt.print_iter > 0 and phase =='train':
         if iter_id % opt.print_iter == 0:
           print('{}/{}| {}'.format(opt.task, opt.exp_id, Bar.suffix)) 
       else:

@@ -19,7 +19,7 @@ import torch.utils.data as data
 
 
 class SHAPES(data.Dataset):
-    num_classes = 3
+    num_classes = 5
     default_resolution = [128, 128]
     mean = np.array([0.40789654, 0.44719302, 0.47026115],
                    dtype=np.float32).reshape(1, 1, 3)
@@ -35,14 +35,13 @@ class SHAPES(data.Dataset):
 #                         }
 
         
-#         num_classes = self.num_classes  ## BORJI
         self.class_names = ['__background__', "square", "circle", "triangle", "hexagon", "eclipse"]
         self.default_resolution = [128, 128]
 
         # ONLY CHANGE 
-        self.data_dir =os.path.join(opt.data_dir, 'shapes/shape_loc/') 
-        self.img_dir = os.path.join(self.data_dir, 'loc_left_train2019') 
-        self.annot_path = os.path.join(self.data_dir, 'annotations', 'instances_shape_loc_left_train2019.json')
+        self.data_dir =os.path.join(opt.data_dir, 'shape_multicombined/')
+        self.img_dir = os.path.join(self.data_dir, 'multicombined_800_train2019')
+        self.annot_path = os.path.join(self.data_dir, 'annotations', 'instances_shape_multicombined_800_train2019.json')
 
         self.max_objs = self.num_classes
         self.class_name = self.class_names[:self.num_classes+1]

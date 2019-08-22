@@ -15,6 +15,9 @@ import torch.nn.functional as F
 
 # Mehdi 
 
+def bce_loss(pred, target):
+    bce_wieghted = F.binary_cross_entropy_with_logits(pred, target) #, pos_weight=torch.Tensor([.8]).cuda()
+    return bce_wieghted
 def dice_loss(pred, target, smooth = 1.):
     pred = pred.contiguous()
     target = target.contiguous()    
